@@ -1,156 +1,1217 @@
-<!DOCTYPE html><html lang="hi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Gym Manager</title>
-<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#0e0d0b"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png"><meta name="apple-mobile-web-app-capable" content="yes">
-<!-- FIRESTORE RULES (Firebase Console > Firestore > Rules me paste karo, tabhi har gym ka data alag rahega):
-rules_version='2'; service cloud.firestore { match /databases/{d}/documents { match /gyms/{g}/{document=**} { allow read, write: if request.auth != null && request.auth.uid == g; } } }
-Auth: Console > Authentication > Sign-in method > Email/Password ON karo. -->
-<style>
-:root{--bg:#0e0d0b;--card:#1a1814;--line:#322d22;--gold:#f5b700;--ok:#3ddc84;--bad:#ff5c5c;--tx:#f4efe4;--mu:#a49b86}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.4 system-ui,"Segoe UI",sans-serif;padding-bottom:72px}
-h2{margin:14px 0 8px;font-size:18px;color:var(--gold)}input,select,button,textarea{font:inherit}
-input,select{width:100%;padding:11px;margin:4px 0 8px;background:#100f0c;color:var(--tx);border:1px solid var(--line);border-radius:8px}
-button{background:var(--gold);color:#111;border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}
-button.g{background:#26221a;color:var(--tx);border:1px solid var(--line)}button.r{background:#3a1616;color:var(--bad)}button.s{padding:6px 10px;font-size:13px}
-.w{max-width:560px;margin:0 auto;padding:12px}.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
-.hd{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-bottom:2px solid var(--gold);position:sticky;top:0;z-index:5}
-.hd img{width:40px;height:40px;border-radius:8px;object-fit:cover}.hd b{flex:1;font-size:16px}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.t{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 8px;text-align:center;font-weight:700;cursor:pointer}
-.t span{display:block;font-size:26px}.row{display:flex;justify-content:space-between;align-items:center;gap:8px}.mu{color:var(--mu);font-size:13px}
-.ok{color:var(--ok)}.bad{color:var(--bad)}.nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:2px solid var(--gold)}
-.nav a{flex:1;text-align:center;padding:10px 0;font-size:12px;color:var(--mu);cursor:pointer}.nav a.on{color:var(--gold);font-weight:700}
-.big{font-size:22px;font-weight:800;color:var(--gold)}.wel{display:grid;place-items:center;height:100vh;text-align:center}.wel img{width:110px;height:110px;border-radius:20px;object-fit:cover}
-table{width:100%;border-collapse:collapse;font-size:13px}td,th{padding:6px 4px;border-bottom:1px solid var(--line);text-align:left}
-</style>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head>
-<body><div id="app"><div class="wel"><div>Loading…</div></div></div>
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+  <title>Org Manager</title>
+  <meta name="theme-color" content="#0e0d0b">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <style>
+    :root{--bg:#0e0d0b;--card:#1a1814;--line:#322d22;--gold:#f5b700;--ok:#3ddc84;--bad:#ff5c5c;--tx:#f4efe4;--mu:#a49b86;--or:#ff9900}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+    body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.45 system-ui,-apple-system,sans-serif;padding-bottom:78px}
+    h2{margin:12px 0 8px;font-size:18px;color:var(--gold)}
+    input,select,textarea,button{font:inherit}
+    input,select,textarea{width:100%;padding:11px;margin:4px 0 10px;background:#100f0c;color:var(--tx);border:1px solid var(--line);border-radius:8px}
+    textarea{min-height:90px;resize:vertical}
+    button{background:var(--gold);color:#111;border:0;border-radius:8px;padding:11px 14px;font-weight:800;cursor:pointer}
+    button.g{background:#26221a;color:var(--tx);border:1px solid var(--line)}
+    button.r{background:#3a1616;color:var(--bad)}
+    button.s{padding:7px 10px;font-size:13px}
+    button:disabled{opacity:.5}
+    .w{max-width:560px;margin:0 auto;padding:12px}
+    .c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin:8px 0}
+    .hd{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border-bottom:2px solid var(--gold);position:sticky;top:0;z-index:20}
+    .hd img{width:40px;height:40px;border-radius:8px;object-fit:cover}
+    .hd b{flex:1;font-size:15px;line-height:1.2}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .t{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 8px;text-align:center;font-weight:700;cursor:pointer}
+    .t span{display:block;font-size:24px;margin-bottom:4px}
+    .row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+    .mu{color:var(--mu);font-size:13px}
+    .ok{color:var(--ok)}.bad{color:var(--bad)}.or{color:var(--or)}
+    .big{font-size:22px;font-weight:900;color:var(--gold)}
+    .nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--card);border-top:2px solid var(--gold);z-index:30}
+    .nav a{flex:1;text-align:center;padding:9px 0;font-size:11px;color:var(--mu);cursor:pointer}
+    .nav a.on{color:var(--gold);font-weight:800}
+    .nav a div{font-size:18px;line-height:1.2}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .stat{background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:12px;text-align:center}
+    .stat .n{font-size:22px;font-weight:900}
+    .stat .l{font-size:11px;color:var(--mu);margin-top:3px;font-weight:700}
+    .stat.g{border-color:var(--ok)}.stat.g .n{color:var(--ok)}
+    .stat.r{border-color:var(--bad)}.stat.r .n{color:var(--bad)}
+    .stat.o{border-color:var(--or)}.stat.o .n{color:var(--or)}
+    .stat.y{border-color:var(--gold)}.stat.y .n{color:var(--gold)}
+    .wel{display:grid;place-items:center;min-height:100vh;text-align:center;padding:20px}
+    label.mu{display:block;margin-top:4px}
+    .chip{display:inline-block;background:#003322;color:var(--ok);padding:2px 8px;border-radius:8px;font-size:10px;font-weight:800}
+    .list-card{border-bottom:1px solid var(--line);padding:10px 0}
+    .list-card:last-child{border-bottom:0}
+    
+    #faceOverlay{display:none;position:fixed;inset:0;z-index:99999;background:#000;flex-direction:column}
+    #faceOverlay.show{display:flex}
+    #faceOverlay .bar{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#111;border-bottom:1px solid var(--gold);flex-shrink:0}
+    #faceOverlay .bar b{color:var(--gold)}
+    #faceStage{flex:1;position:relative;min-height:0}
+    #faceVideo,#faceCanvas{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    #faceCanvas{pointer-events:none}
+    #faceMsg{position:absolute;left:12px;right:12px;bottom:24px;background:rgba(0,0,0,.85);border:1.5px solid var(--gold);border-radius:12px;padding:14px;text-align:center;font-weight:800;color:var(--gold);z-index:2}
+    #faceMsg.ok{border-color:var(--ok);color:var(--ok)}
+    #faceMsg.bad{border-color:var(--bad);color:var(--bad)}
+    #faceTimer{position:absolute;top:16px;right:16px;background:rgba(0,0,0,.75);color:var(--gold);font-weight:900;font-size:22px;padding:8px 14px;border-radius:10px;z-index:2;border:1px solid var(--gold)}
+    .previmg{width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--line);margin:4px 0}
+    .progress{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;font-size:12px;color:var(--mu)}
+    .progress b{color:var(--gold)}
+
+    #toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#222;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;font-weight:700;z-index:99;display:none;border:1px solid var(--gold);max-width:90%}
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+</head>
+<body>
+<div id="app"><div class="wel"><div>Loading…<div class="mu" id="ls" style="margin-top:8px"></div></div></div></div>
+<div id="faceOverlay">
+  <div class="bar"><b id="faceName">Face</b><button class="g s" type="button" onclick="closeFace()">✕ Band</button></div>
+  <div id="faceStage">
+    <video id="faceVideo" playsinline muted autoplay></video>
+    <canvas id="faceCanvas"></canvas>
+    <div id="faceTimer">10</div>
+    <div id="faceMsg">Ready</div>
+  </div>
+</div>
+<div id="toast"></div>
+
 <script>
-window.__errs=[];setTimeout(function(){if(window.__af)return;var a=document.getElementById('app');a.innerHTML='<div style="padding:20px;color:#fff;font-size:18px"><h2 style="color:#f5b50a">Dikkat aayi (v7)</h2><p>Firebase library load hui? <b>'+(typeof firebase!=='undefined'?'HAAN':'NAHI')+'</b></p><p>Excel library load hui? <b>'+(typeof XLSX!=='undefined'?'HAAN':'NAHI')+'</b></p><p>Internet: '+navigator.onLine+'</p><p style="color:#ff8a80">'+window.__errs.length?window.__errs.join(' || '):'koi error nahi'+'</p><button onclick="location.reload()" style="padding:12px 20px;font-size:16px">Dobara try</button></div>'},6000);
-function __showErr(m){window.__errs.push(m);var e=document.getElementById('ls');if(e)e.innerHTML=e.textContent+'<br><span class="bad">ERR: '+String(m).replace(/</g,'&lt;')+'</span>'}
-window.onerror=function(m,src,l){__showErr(m+' @'+String(src||'').split('/').pop()+':'+l)};window.addEventListener('unhandledrejection',function(ev){__showErr('promise: '+(ev.reason&&ev.reason.message||ev.reason))});
-try{firebase.initializeApp({apiKey:"AIzaSyC5gfHQbzq67Bzk5K03vy3w3B4FnyC0oLs",authDomain:"gym-manager-app-76650.firebaseapp.com",projectId:"gym-manager-app-76650",storageBucket:"gym-manager-app-76650.firebasestorage.app",messagingSenderId:"837291846592",appId:"1:837291846592:web:2c4a81d694e0d643b8b625"});}catch(e){window.__errs.push('init: '+(e&&e.message))}
-let auth,db;
-try{auth=firebase.auth()}catch(e){window.__errs.push('auth: '+(e&&e.message))}
-try{db=firebase.firestore();try{db.settings({experimentalForceLongPolling:true,merge:true})}catch(e){window.__errs.push('settings: '+(e&&e.message))}}catch(e){window.__errs.push('firestore: '+(e&&e.message))}
-const $=s=>document.querySelector(s),A=$('#app');
-const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const today=()=>new Date(Date.now()-new Date().getTimezoneOffset()*6e4).toISOString().slice(0,10);
-const COLS=['members','fees','att','staff','staffatt','products','sales','expenses'];
-let U,G,D={},tab='home',mode='login',logo='',sd=today(),sm=today().slice(0,7),q='';
-const col=n=>db.collection('gyms').doc(U.uid).collection(n);
-const tmo=(p,n)=>Promise.race([p,new Promise((_,j)=>setTimeout(()=>j(new Error('Timeout: '+n+' (12s)')),12000))]);
-async function loadAll(){for(const c of COLS){window.__st='load '+c;D[c]=(await tmo(col(c).get(),c)).docs.map(d=>({id:d.id,...d.data()}))}}
-async function put(c,o,id){const r=id?col(c).doc(id):col(c).doc();await r.set(o,{merge:true});const i=D[c].findIndex(x=>x.id===r.id);if(i<0)D[c].push({id:r.id,...o});else Object.assign(D[c][i],o);return r.id}
-async function del(c,id){await col(c).doc(id).delete();D[c]=D[c].filter(x=>x.id!==id)}
-const go=t=>{tab=t;draw()};
-// ---------- form helper ----------
-const F=(fs,v={})=>fs.map(([k,l,t,o])=>`<label class="mu">${l}</label>`+(t==='sel'?`<select id="f_${k}">${o.map(x=>`<option value="${x[0]}" ${v[k]==x[0]?'selected':''}>${x[1]}</option>`).join('')}</select>`:`<input id="f_${k}" type="${t||'text'}" value="${esc(v[k]??(t==='date'?today():''))}">`)).join('');
-const gf=fs=>Object.fromEntries(fs.map(([k,,t])=>{let x=$('#f_'+k).value;return[k,t==='number'?+x||0:x]}));
-// ---------- auth ----------
-function authView(){
- const su=mode==='signup';
- A.innerHTML=`<div class="w"><h2 style="font-size:24px">🏋️ Gym Manager</h2><div class="c">
- ${su?`<label class="mu">Account type</label><select id="a_type" onchange="$('#bz').style.display=this.value=='biz'?'block':'none'"><option value="per">Personal — Gym</option><option value="biz">Business — Car Showroom</option></select>
- <div id="bz" class="bad" style="display:none">Car Showroom abhi jald aa raha hai. Abhi Personal — Gym chuno.</div>
- <label class="mu">Gym logo (optional)</label><input type="file" accept="image/*" onchange="pickLogo(this)">
- ${F([['gname','Gym ka naam'],['owner','Owner ka poora naam'],['phone','Contact no','tel'],['addr','Gym ka address']])}`:''}
- ${F([['email','Email id','email'],['pw','Password (min 6)','password']])}
- <button style="width:100%" onclick="${su?'signup()':'login()'}">${su?'Sign up':'Login'}</button>
- <p class="mu" style="text-align:center" onclick="mode='${su?'login':'signup'}';authView()"><u>${su?'Pehle se account hai? Login':'Naya gym? Sign up karo'}</u></p></div></div>`}
-function pickLogo(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=e=>{const im=new Image();im.onload=()=>{const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d'),s=Math.min(im.width,im.height);x.drawImage(im,(im.width-s)/2,(im.height-s)/2,s,s,0,0,128,128);logo=c.toDataURL('image/jpeg',.8)};im.src=e.target.result};r.readAsDataURL(f)}
-async function signup(){try{
- if($('#a_type').value=='biz')return alert('Car Showroom abhi jald aa raha hai. Personal — Gym chuno.');
- const p=gf([['gname'],['owner'],['phone'],['addr'],['email'],['pw']]);
- if(!p.gname||!p.owner||!p.phone||!p.addr||!p.email||p.pw.length<6)return alert('Saari details bharo (password kam se kam 6).');
- const c=await auth.createUserWithEmailAndPassword(p.email,p.pw);
- await db.collection('gyms').doc(c.user.uid).set({name:p.gname,owner:p.owner,phone:p.phone,email:p.email,addr:p.addr,type:'gym',logo,created:today()});
-}catch(e){alert(e.message)}}
-async function login(){try{await auth.signInWithEmailAndPassword($('#f_email').value,$('#f_pw').value)}catch(e){alert('Email ya password galat hai.')}}
-function fail(e){A.innerHTML=`<div class="w"><h2>Dikkat aayi</h2><div class="c bad">${esc(e&&e.message||e)}</div><p class="mu">Agar "permissions" likha hai to Firebase > Firestore > Rules me gyms wala rule add karke Publish karo. Agar jawab nahi aaya to internet check karo aur dobara try karo.</p><button onclick="location.reload()">Dobara try</button> <button class="g" onclick="auth.signOut()">Logout</button></div>`}
-window.__af=0;setTimeout(()=>{if(window.__af)return;var a=document.getElementById('app');a.innerHTML='<div class="w"><h2>Dikkat aayi</h2><div class="c bad">Login check shuru hi nahi hua (8 sec). Browser: '+esc(navigator.userAgent.slice(0,90))+'<br>Online: '+navigator.onLine+'</div><button onclick="hardReset()">Reset karke dobara try</button></div>'},8000);
-async function hardReset(){try{(await navigator.serviceWorker.getRegistrations()).forEach(r=>r.unregister());(await caches.keys()).forEach(k=>caches.delete(k));indexedDB.databases&&(await indexedDB.databases()).forEach(d=>indexedDB.deleteDatabase(d.name))}catch(e){}location.reload()}
-function banner(t){var b=document.getElementById('bn');if(!b){document.body.insertAdjacentHTML('beforeend','<div id="bn" style="position:fixed;top:0;left:0;right:0;z-index:99;background:#b00020;color:#fff;padding:10px;font-size:14px"></div>');b=document.getElementById('bn')}b.textContent=t}
-document.body.insertAdjacentHTML('beforeend','<div style="position:fixed;left:6px;bottom:2px;font-size:11px;color:#888;z-index:98">v7</div>');
-auth.onAuthStateChanged(async u=>{window.__af=1;U=u;if(!u)return authView();
- try{
- A.innerHTML='<div class="wel"><div>Loading…<div id="ls" style="font-size:15px;margin-top:12px"></div></div></div>';
- window.__st='profile';window.__t0=Date.now();clearInterval(window.__iv);window.__iv=setInterval(()=>{var e=document.getElementById('ls');if(e)e.textContent='v7 | '+window.__st+' | '+Math.round((Date.now()-window.__t0)/1000)+'s'},500);
- let s=null,pe='';
- try{for(let i=0;i<4&&!(s&&s.exists);i++){s=await tmo(db.collection('gyms').doc(u.uid).get(),'profile');if(!s.exists)await new Promise(r=>setTimeout(r,500))}}catch(e){pe='Profile error: '+(e.message||e)}
- clearInterval(window.__iv);
- G=(s&&s.data&&s.data())||{name:'My Gym'};
- COLS.forEach(c=>D[c]=[]);
- draw();
- if(pe)banner(pe);
- loadAll().then(()=>{draw();autoBackup()}).catch(e=>banner('Data load error: '+(e.message||e)))
- }catch(e){fail(e)}});
-// ---------- layout ----------
-function draw(){const N=[['home','🏠','Home'],['att','✅','Attendance'],['members','👥','Members'],['staff','🧑‍🔧','Staff'],['store','💊','Store'],['rep','📊','Report']];
- A.innerHTML=`<div class="hd">${G.logo?`<img src="${G.logo}">`:'🏋️'}<b>${esc(G.name)}</b><button class="g s" onclick="auth.signOut()">Logout</button></div><div class="w" id="v"></div><div class="nav">${N.map(n=>`<a class="${tab==n[0]||(tab=='admit'&&n[0]=='members')?'on':''}" onclick="go('${n[0]}')"><div style="font-size:18px">${n[1]}</div>${n[2]}</a>`).join('')}</div>`;
- $('#v').innerHTML=({home,admit,att:attV,members:memV,staff:stV,store:stoV,rep})[tab]()}
-const T=(i,l,t)=>`<div class="t" onclick="go('${t}')"><span>${i}</span>${l}</div>`;
-function home(){const n=D.members.length,p=D.att.filter(a=>a.date==today()).length;
- return`<h2>Aaj ka haal</h2><div class="c row"><div><div class="big">${p}</div><div class="mu">aaj present</div></div><div><div class="big">${n}</div><div class="mu">kul member</div></div></div>
- <div class="grid">${T('📝','Admission Form','admit')}${T('✅','Attendance','att')}${T('👥','Gym Members','members')}${T('💰','Fees','members')}${T('💊','Supplement Store','store')}${T('🥗','Diet Chart','home')}${T('🧑‍🔧','Staff Salary','staff')}${T('📊','Report / Backup','rep')}</div><p class="mu">Diet Chart module jald aa raha hai.</p>`}
-// ---------- admission / members / attendance ----------
-const AF=[['name','Naam'],['phone','Mobile','tel'],['father','Father / Husband ka naam'],['plan','Plan (mahine)','number'],['fee','Fees ₹','number'],['joined','Joining date','date'],['slot','Batch','sel',[['Morning','Morning'],['Evening','Evening']]]];
-const admit=()=>`<h2>Naya Admission</h2><div class="c">${F(AF)}<button style="width:100%" onclick="saveAdmit()">Admission Save karo</button></div>`;
-const addM=(d,m)=>{const x=new Date(d);x.setMonth(x.getMonth()+m);return x.toISOString().slice(0,10)};
-async function saveAdmit(){const m=gf(AF);if(!m.name||!m.phone)return alert('Naam aur mobile zaroori hai.');m.plan=m.plan||1;m.validTill=addM(m.joined,m.plan);
- const id=await put('members',m);if(m.fee)await put('fees',{date:m.joined,mid:id,name:m.name,amt:m.fee});alert('Admission ho gaya ✔');go('members')}
-const mList=(btn)=>`<input placeholder="🔍 Naam / mobile" value="${esc(q)}" oninput="q=this.value;$('#ml').innerHTML=mRows()">`+`<div id="ml">${mRows()}</div>`;
-let mBtn=()=>'';
-const mRows=()=>D.members.filter(m=>(m.name+m.phone).toLowerCase().includes(q.toLowerCase())).sort((a,b)=>a.name.localeCompare(b.name)).map(m=>`<div class="c"><div class="row"><b>${esc(m.name)}</b><span class="${m.validTill<today()?'bad':'ok'}">${m.validTill<today()?'Expired':'Active'} · ${m.validTill}</span></div><div class="mu">${esc(m.phone)} · ${esc(m.slot)}</div><div style="margin-top:8px">${mBtn(m)}</div></div>`).join('')||'<p class="mu">Koi member nahi.</p>';
-function attV(){const p=new Set(D.att.filter(a=>a.date==today()).map(a=>a.mid));mBtn=m=>p.has(m.id)?`<button class="g s" onclick="unmark('${m.id}')">✔ Present (hatao)</button>`:`<button class="s" onclick="mark('${m.id}')">Present lagao</button>`;
- return`<h2>Aaj ki Attendance — ${p.size}</h2>`+mList()}
-async function mark(id){const m=D.members.find(x=>x.id==id);await put('att',{date:today(),mid:id,name:m.name,time:new Date().toLocaleTimeString('en-IN')},today()+'_'+id);draw()}
-async function unmark(id){await del('att',today()+'_'+id);draw()}
-function memV(){mBtn=m=>`<button class="s" onclick="fee('${m.id}')">💰 Fees lo</button> <button class="g s" onclick="stat('${m.id}')">Din</button> <button class="r s" onclick="delM('${m.id}')">Delete</button>`;
- return`<div class="row"><h2>Gym Members (${D.members.length})</h2><button class="s" onclick="go('admit')">+ Naya</button></div>`+mList()}
-async function fee(id){const m=D.members.find(x=>x.id==id),a=+prompt('Fees kitni mili ₹?',m.fee||'');if(!a)return;const mo=+prompt('Kitne mahine ke liye?',m.plan||1);if(!mo)return;
- const b=m.validTill>today()?m.validTill:today();await put('members',{validTill:addM(b,mo)},id);await put('fees',{date:today(),mid:id,name:m.name,amt:a});draw()}
-function stat(id){const m=D.members.find(x=>x.id==id),d=D.att.filter(a=>a.mid==id&&a.date.slice(0,7)==today().slice(0,7)).length;alert(`${m.name}\nIs mahine aaya: ${d} din\nValid till: ${m.validTill}`)}
-async function delM(id){if(confirm('Member delete karein?')){await del('members',id);draw()}}
-// ---------- staff + salary ----------
-const SF=[['name','Staff ka naam'],['role','Kaam (Cleaner / Trainer / Reception…)'],['gender','Male / Female','sel',[['Male','Male'],['Female','Female']]],['phone','Mobile','tel'],['kin','Father / Husband-Wife ka naam'],['addr','Current address'],['home','Home town address'],['idp','ID proof (naam / number)'],['exp','Pehle ka work experience'],['join','Join date','date'],['shift','Shift (jaise 6am–2pm)'],['hrs','Shift ke ghante','number'],['sal','Mahine ki salary ₹','number'],['off','Weekly off','sel',['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'].map((x,i)=>[i,x])]];
-let shF=false;
-function stV(){return`<div class="row"><h2>Staff</h2><button class="s" onclick="shF=!shF;draw()">+ Naya Staff</button></div>
- ${shF?`<div class="c">${F(SF,{hrs:8})}<button style="width:100%" onclick="saveSt()">Staff Save karo</button></div>`:''}
- <div class="c"><label class="mu">Din chuno (hazri / penalty)</label><input type="date" value="${sd}" onchange="sd=this.value;draw()">${D.staff.map(s=>{const r=D.staffatt.find(x=>x.id==sd+'_'+s.id)||{};
- return`<div style="border-top:1px solid var(--line);padding:8px 0"><div class="row"><b>${esc(s.name)} <span class="mu">${esc(s.role)}</span></b><span class="mu">₹${s.sal}/mah</span></div>
- <div class="row"><select id="s_${s.id}"><option value="P" ${r.st=='P'?'selected':''}>Present</option><option value="A" ${r.st=='A'?'selected':''}>Absent</option><option value="W" ${r.st=='W'?'selected':''}>Weekly off</option></select>
- <input id="p_${s.id}" type="number" placeholder="Late/penalty ghante" value="${r.pen||''}"><input id="i_${s.id}" type="number" placeholder="Incentive ₹" value="${r.inc||''}"></div>
- <button class="s" onclick="saveDay('${s.id}')">Save</button> <button class="r s" onclick="delDay('${s.id}')">Din hatao</button> <button class="g s" onclick="delSt('${s.id}')">Staff delete</button></div>`}).join('')||'<p class="mu">Abhi koi staff nahi.</p>'}</div>
- <h2>Mahine ki Salary</h2><div class="c"><input type="month" value="${sm}" onchange="sm=this.value;draw()"><div style="overflow-x:auto"><table><tr><th>Naam</th><th>Din</th><th>Penalty</th><th>Incentive</th><th>Net ₹</th></tr>${D.staff.map(s=>{const c=sal(s,sm);return`<tr><td>${esc(s.name)}</td><td>${c.d}</td><td>-${c.pen}</td><td>+${c.inc}</td><td><b>${c.net}</b></td></tr>`}).join('')}</table></div>
- <p class="mu">Per din = salary ÷ 30. Penalty = per din ÷ shift ke ghante × late ghante. Weekly off paid hai.</p></div>`}
-function sal(s,ym){const day=s.sal/30,hr=day/(s.hrs||8);let d=0,pen=0,inc=0,net=0;D.staffatt.filter(r=>r.sid==s.id&&r.date.slice(0,7)==ym).forEach(r=>{if(r.st=='A')return;d++;const p=Math.min(day,(r.pen||0)*hr);pen+=p;inc+=r.inc||0;net+=day-p+(r.inc||0)});return{d,pen:Math.round(pen),inc:Math.round(inc),net:Math.round(net)}}
-async function saveSt(){const s=gf(SF);if(!s.name||!s.sal)return alert('Naam aur salary zaroori hai.');await put('staff',s);shF=false;draw()}
-async function saveDay(id){await put('staffatt',{sid:id,date:sd,st:$('#s_'+id).value,pen:+$('#p_'+id).value||0,inc:+$('#i_'+id).value||0},sd+'_'+id);draw()}
-async function delDay(id){await del('staffatt',sd+'_'+id);draw()}
-async function delSt(id){if(confirm('Staff delete karein?')){await del('staff',id);draw()}}
-// ---------- supplement store ----------
-const PF=[['name','Product ka naam'],['buy','Kharid rate ₹','number'],['sell','Bikri rate ₹','number'],['qty','Maal (quantity)','number']];
-function stoV(){const low=D.products.filter(p=>p.qty<=3);
- return`<h2>Supplement Store</h2>${low.length?`<div class="c bad">⚠ Kam maal: ${low.map(p=>esc(p.name)+' ('+p.qty+')').join(', ')}</div>`:''}
- <div class="c">${D.products.map(p=>`<div class="row" style="padding:6px 0;border-bottom:1px solid var(--line)"><div><b>${esc(p.name)}</b><div class="mu">₹${p.sell} · bacha: <span class="${p.qty<=3?'bad':'ok'}">${p.qty}</span></div></div><div><button class="s" onclick="sell('${p.id}')">Becho</button> <button class="g s" onclick="stk('${p.id}')">+Stock</button></div></div>`).join('')||'<p class="mu">Product add karo.</p>'}</div>
- <div class="c"><b>Naya product</b>${F(PF)}<button style="width:100%" onclick="addP()">Add</button></div>`}
-async function addP(){const p=gf(PF);if(!p.name)return;await put('products',p);draw()}
-async function stk(id){const p=D.products.find(x=>x.id==id),n=+prompt('Kitna naya maal aaya?');if(n>0){await put('products',{qty:p.qty+n},id);draw()}}
-async function sell(id){const p=D.products.find(x=>x.id==id),n=+prompt('Kitne bike?',1);if(!n)return;if(n>p.qty)return alert('Itna maal nahi hai.');
- await put('products',{qty:p.qty-n},id);await put('sales',{date:today(),pid:id,name:p.name,qty:n,amt:n*p.sell,profit:n*(p.sell-p.buy)});draw()}
-// ---------- report + backup ----------
-function rep(){const t=today(),f=D.fees.filter(x=>x.date==t),s=D.sales.filter(x=>x.date==t),e=D.expenses.filter(x=>x.date==t),k=a=>a.reduce((z,x)=>z+(x.amt||0),0);
- const fc=k(f),sc=k(s),sp=s.reduce((z,x)=>z+x.profit,0),ex=k(e);
- return`<h2>Aaj ka Report (${t})</h2><div class="c"><table>
- <tr><td>Naye admission</td><td><b>${D.members.filter(m=>m.joined==t).length}</b></td></tr><tr><td>Fees jama (${f.length} log)</td><td><b>₹${fc}</b></td></tr>
- <tr><td>Supplement bikri</td><td><b>₹${sc}</b></td></tr><tr><td>Supplement profit</td><td class="ok"><b>₹${sp}</b></td></tr>
- <tr><td>Kul collection</td><td class="big">₹${fc+sc}</td></tr><tr><td>Kharcha</td><td class="bad">₹${ex}</td></tr><tr><td>Bacha (collection − kharcha)</td><td class="big">₹${fc+sc-ex}</td></tr></table>
- <button class="g s" style="margin-top:8px" onclick="addEx()">+ Kharcha likho</button></div>
- <h2>Backup</h2><div class="c"><p class="mu">Roz app pehli baar khulte hi poore data ki Excel file apne aap download hoti hai. Last backup: ${localStorage.getItem('bk_'+U.uid)||'abhi nahi'}</p><button style="width:100%" onclick="backup()">📥 Abhi Excel Backup lo</button></div>`}
-async function addEx(){const a=+prompt('Kharcha kitna ₹?');if(!a)return;const n=prompt('Kis cheez ka? (bijli, kiraya…)')||'';await put('expenses',{date:today(),amt:a,note:n});draw()}
-function backup(){const w=XLSX.utils.book_new();COLS.forEach(c=>XLSX.utils.book_append_sheet(w,XLSX.utils.json_to_sheet(D[c].length?D[c]:[{}]),c));
- XLSX.writeFile(w,`${(G.name||'gym').replace(/\W+/g,'_')}_backup_${today()}.xlsx`);localStorage.setItem('bk_'+U.uid,today())}
-function autoBackup(){try{if(localStorage.getItem('bk_'+U.uid)!==today())backup()}catch(e){}}
-if('serviceWorker' in navigator)addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
-</script></body></html>
+/* =========================================================
+   ORG MANAGER — Phase 0 + Phase 1
+   Multi-tenant: orgs/{uid}/people|attendance|fees|...
+   Dashboard · Members · Admission · Attendance · Backup · Alerts
+   ========================================================= */
+
+// ---- Firebase: use your SaaS project. Replace if needed. ----
+// Default points to gym-manager project; change to new project for production sell.
+firebase.initializeApp({
+  apiKey: "AIzaSyC5gfHQbzq67Bzk5K03vy3w3B4FnyC0oLs",
+  authDomain: "gym-manager-app-76650.firebaseapp.com",
+  projectId: "gym-manager-app-76650",
+  storageBucket: "gym-manager-app-76650.firebasestorage.app",
+  messagingSenderId: "837291846592",
+  appId: "1:837291846592:web:2c4a81d694e0d643b8b625"
+});
+
+const auth = firebase.auth();
+const db = firebase.firestore();
+try { db.settings({ experimentalForceLongPolling: true, merge: true }); } catch (e) {}
+
+const $ = (s) => document.querySelector(s);
+const A = $("#app");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+const today = () => {
+  const d = new Date();
+  const z = d.getTimezoneOffset() * 60000;
+  return new Date(d - z).toISOString().slice(0, 10);
+};
+const nowTime = () => new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+const COLS = ["people", "attendance", "fees", "staff", "staffAtt", "products", "sales", "expenses"];
+
+let U = null;      // auth user
+let G = null;      // org profile
+let D = {};        // collections cache
+let tab = "home";
+let mode = "login"; // login | signup
+let logoData = "";
+let q = "";
+let sd = today();
+let sm = today().slice(0, 7);
+
+function col(name) {
+  return db.collection("orgs").doc(U.uid).collection(name);
+}
+function orgRef() {
+  return db.collection("orgs").doc(U.uid);
+}
+
+function toast(msg) {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.style.display = "none"; }, 2800);
+}
+
+function st(msg) {
+  const el = $("#ls");
+  if (el) el.textContent = msg;
+}
+
+// ---------- forms ----------
+function F(fields, values) {
+  values = values || {};
+  return fields.map(([k, label, type, opts]) => {
+    type = type || "text";
+    if (type === "sel") {
+      return `<label class="mu">${label}</label><select id="f_${k}">${(opts || []).map(([v, t]) =>
+        `<option value="${esc(v)}" ${String(values[k]) === String(v) ? "selected" : ""}>${esc(t)}</option>`
+      ).join("")}</select>`;
+    }
+    if (type === "ta") {
+      return `<label class="mu">${label}</label><textarea id="f_${k}">${esc(values[k] || "")}</textarea>`;
+    }
+    const val = values[k] != null ? values[k] : (type === "date" ? today() : "");
+    return `<label class="mu">${label}</label><input id="f_${k}" type="${type}" value="${esc(val)}">`;
+  }).join("");
+}
+function gf(fields) {
+  const o = {};
+  fields.forEach(([k, , type]) => {
+    const el = $("#f_" + k);
+    if (!el) { o[k] = ""; return; }
+    o[k] = type === "number" ? (+el.value || 0) : el.value;
+  });
+  return o;
+}
+
+// ---------- data ----------
+const tmo = (p, n) => Promise.race([
+  p,
+  new Promise((_, rej) => setTimeout(() => rej(new Error("Timeout: " + n)), 15000))
+]);
+
+async function loadAll() {
+  for (const c of COLS) {
+    st("Loading " + c + "…");
+    try {
+      const snap = await tmo(col(c).get(), c);
+      D[c] = snap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+    } catch (e) {
+      console.warn(c, e);
+      D[c] = D[c] || [];
+    }
+  }
+}
+
+async function put(c, data, id) {
+  const ref = id ? col(c).doc(id) : col(c).doc();
+  await ref.set(data, { merge: true });
+  const row = Object.assign({ id: ref.id }, data);
+  const i = D[c].findIndex((x) => x.id === ref.id);
+  if (i < 0) D[c].push(row);
+  else Object.assign(D[c][i], data);
+  return ref.id;
+}
+
+async function del(c, id) {
+  await col(c).doc(id).delete();
+  D[c] = D[c].filter((x) => x.id !== id);
+}
+
+// ---------- auth views ----------
+function authView() {
+  const su = mode === "signup";
+  A.innerHTML = `<div class="w">
+    <h2 style="font-size:22px;margin-top:24px">🏢 Org Manager</h2>
+    <p class="mu">Attendance · People · Salary · Fees — multi organization</p>
+    <div class="c">
+      ${su ? `
+        <label class="mu">Organization type</label>
+        <select id="a_type">
+          <option value="gym">Gym / Fitness</option>
+          <option value="office">Office</option>
+          <option value="school">School / Coaching</option>
+          <option value="factory">Factory / Site</option>
+          <option value="other">Other</option>
+        </select>
+        <label class="mu">Logo (optional)</label>
+        <input type="file" accept="image/*" onchange="pickLogo(this)">
+        ${F([
+          ["gname", "Organization / Gym name"],
+          ["owner", "Owner full name"],
+          ["phone", "Contact phone", "tel"],
+          ["addr", "Address"]
+        ])}
+      ` : ""}
+      ${F([
+        ["email", "Email", "email"],
+        ["pw", "Password (min 6)", "password"]
+      ])}
+      <button style="width:100%" onclick="${su ? "doSignup()" : "doLogin()"}">${su ? "Sign up" : "Login"}</button>
+      <p class="mu" style="text-align:center;margin-top:12px" onclick="mode='${su ? "login" : "signup"}';authView()">
+        <u>${su ? "Already have account? Login" : "New organization? Sign up"}</u>
+      </p>
+    </div>
+    <p class="mu" style="font-size:11px;margin-top:16px">Data har org ke liye alag safe rehta hai. Backup Report tab se lo.</p>
+  </div>`;
+}
+
+window.pickLogo = function (inp) {
+  const f = inp.files && inp.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = (e) => {
+    const im = new Image();
+    im.onload = () => {
+      const c = document.createElement("canvas");
+      c.width = c.height = 128;
+      const x = c.getContext("2d");
+      const s = Math.min(im.width, im.height);
+      x.drawImage(im, (im.width - s) / 2, (im.height - s) / 2, s, s, 0, 0, 128, 128);
+      logoData = c.toDataURL("image/jpeg", 0.85);
+    };
+    im.src = e.target.result;
+  };
+  r.readAsDataURL(f);
+};
+
+window.doSignup = async function () {
+  try {
+    const p = gf([
+      ["gname"], ["owner"], ["phone"], ["addr"], ["email"], ["pw"]
+    ]);
+    const type = ($("#a_type") && $("#a_type").value) || "gym";
+    if (!p.gname || !p.owner || !p.phone || !p.email || (p.pw || "").length < 6) {
+      return alert("Saari zaroori details bharo (password min 6).");
+    }
+    st("Creating account…");
+    const cred = await auth.createUserWithEmailAndPassword(p.email, p.pw);
+    const profile = {
+      name: p.gname,
+      owner: p.owner,
+      phone: p.phone,
+      email: p.email,
+      addr: p.addr || "",
+      type,
+      logo: logoData || "",
+      termsHtml: defaultTerms(p.gname),
+      alertWhatsApp: true,
+      alertEmail: false,
+      alertPhone: p.phone,
+      alertEmailAddr: p.email,
+      created: today(),
+      status: "active"
+    };
+    await db.collection("orgs").doc(cred.user.uid).set(profile);
+    toast("Account ready ✔");
+  } catch (e) {
+    alert(e.message || e);
+  }
+};
+
+window.doLogin = async function () {
+  try {
+    const email = $("#f_email").value.trim();
+    const pw = $("#f_pw").value;
+    await auth.signInWithEmailAndPassword(email, pw);
+  } catch (e) {
+    alert("Email ya password galat / account nahi mila.");
+  }
+};
+
+function defaultTerms(name) {
+  return `1. ${name || "Organization"} ke rules follow karna zaroori hai.\n2. Attendance / entry verification ke baad hi entry.\n3. Fees / dues time par clear karni hongi.\n4. Personal belongings ki zimmedari khud ki.\n5. Management rules change kar sakti hai — updated T&C app me dikhegi.`;
+}
+
+function fail(e) {
+  A.innerHTML = `<div class="w"><h2>Dikkat</h2>
+    <div class="c bad">${esc(e && e.message || e)}</div>
+    <p class="mu">Agar "permission" / "Missing or insufficient" aaye to Firebase → Firestore → Rules me orgs rule Publish karo (neeche README).</p>
+    <button onclick="location.reload()">Retry</button>
+    <button class="g" onclick="auth.signOut()">Logout</button>
+  </div>`;
+}
+
+// ---------- boot ----------
+let booted = false;
+auth.onAuthStateChanged(async (u) => {
+  booted = true;
+  U = u;
+  if (!u) return authView();
+  try {
+    A.innerHTML = `<div class="wel"><div>Loading…<div class="mu" id="ls" style="margin-top:8px">Profile</div></div></div>`;
+    let snap = null;
+    for (let i = 0; i < 6; i++) {
+      st("Profile try " + (i + 1));
+      snap = await tmo(orgRef().get(), "org profile");
+      if (snap.exists) break;
+      await new Promise((r) => setTimeout(r, 400));
+    }
+    G = snap && snap.exists ? snap.data() : { name: "My Org", type: "gym" };
+    st("Data…");
+    await loadAll();
+    A.innerHTML = `<div class="wel"><div>${G.logo ? `<img src="${G.logo}" style="width:96px;height:96px;border-radius:16px;object-fit:cover">` : `<div style="font-size:64px">🏢</div>`}
+      <h2 style="font-size:24px">Welcome<br>${esc(G.name)}</h2>
+      <p class="mu">${esc(G.type || "org")}</p></div></div>`;
+    await new Promise((r) => setTimeout(r, 900));
+    draw();
+    autoBackupOnce();
+  } catch (e) {
+    console.error(e);
+    fail(e);
+  }
+});
+
+setTimeout(() => {
+  if (!booted) {
+    A.innerHTML = `<div class="w"><h2>Auth slow</h2><div class="c">Login check start nahi hua. Net check karke Retry dabao.</div>
+      <button onclick="location.reload()">Retry</button></div>`;
+  }
+}, 10000);
+
+// ---------- shell ----------
+function go(t) { tab = t; draw(); }
+
+function draw() {
+  const N = [
+    ["home", "🏠", "Home"],
+    ["att", "✅", "Attendance"],
+    ["people", "👥", "People"],
+    ["admit", "📝", "Admit"],
+    ["staff", "🧑‍🔧", "Staff"],
+    ["store", "💊", "Store"],
+    ["diet", "🥗", "Diet"],
+    ["settings", "⚙️", "Settings"],
+    ["rep", "📊", "Report"],
+    ["master", "👑", "Master"]
+  ];
+  A.innerHTML = `
+    <div class="hd">
+      ${G.logo ? `<img src="${G.logo}">` : "🏢"}
+      <b>${esc(G.name)}</b>
+      <button class="g s" onclick="auth.signOut()">Logout</button>
+    </div>
+    <div class="w" id="v"></div>
+    <div class="nav">${N.map((n) =>
+      `<a class="${tab === n[0] ? "on" : ""}" onclick="go('${n[0]}')"><div>${n[1]}</div>${n[2]}</a>`
+    ).join("")}</div>`;
+  const map = { home, att: attV, people: peopleV, admit: admitV, staff: staffV, store: storeV, diet: dietV, settings: settingsV, rep, master: masterV };
+  $("#v").innerHTML = (map[tab] || home)();
+}
+
+// ---------- helpers people ----------
+function isDue(p) {
+  if (!p) return false;
+  if (p.validTill && p.validTill < today()) return true;
+  const st = String(p.status || "").toLowerCase();
+  if (st.indexOf("pending") >= 0 || st.indexOf("due") >= 0 || st === "bakaya") return true;
+  if (Number(p.dueFee) > 0) return true;
+  return false;
+}
+
+function presentIdsToday() {
+  const set = new Set();
+  (D.attendance || []).forEach((a) => {
+    if (a.date === today()) set.add(String(a.personId || a.mid));
+  });
+  return set;
+}
+
+function statsBlock() {
+  const people = D.people || [];
+  const presentSet = presentIdsToday();
+  let present = 0;
+  people.forEach((p) => { if (presentSet.has(String(p.id))) present++; });
+  if (presentSet.size > present) present = presentSet.size;
+  const total = people.length;
+  const absent = Math.max(0, total - present);
+  const due = people.filter(isDue);
+  const expired = people.filter((p) => p.validTill && p.validTill < today()).length;
+  const expiring = people.filter((p) => {
+    if (!p.validTill || p.validTill < today()) return false;
+    const d0 = new Date(today());
+    const d1 = new Date(p.validTill);
+    return (d1 - d0) / 86400000 <= 7;
+  }).length;
+  const joinsToday = people.filter((p) => p.joined === today()).length;
+  const feesToday = (D.fees || []).filter((f) => f.date === today()).reduce((s, f) => s + (Number(f.amt) || 0), 0);
+
+  return `
+    <div class="stats">
+      <div class="stat y"><div class="n">${total}</div><div class="l">Total people</div></div>
+      <div class="stat g"><div class="n">${present}</div><div class="l">Aaj present</div></div>
+      <div class="stat r"><div class="n">${absent}</div><div class="l">Aaj absent</div></div>
+      <div class="stat o"><div class="n">${due.length}</div><div class="l">Due / Expired</div></div>
+    </div>
+    <div class="c" style="margin-top:10px">
+      <div class="row"><span class="mu">Aaj join</span><b>${joinsToday}</b></div>
+      <div class="row"><span class="mu">Expiring 7 din</span><b class="or">${expiring}</b></div>
+      <div class="row"><span class="mu">Already expired</span><b class="bad">${expired}</b></div>
+      <div class="row"><span class="mu">Aaj fees collection</span><b class="ok">₹${feesToday}</b></div>
+    </div>
+    ${due.length ? `<div class="c"><b class="or">Due / Expired list</b>${due.slice(0, 15).map((p) =>
+      `<div class="list-card row"><span>${esc(p.name)} <span class="mu">${esc(p.phone || "")}</span></span>
+        <span class="or">${p.validTill && p.validTill < today() ? "Expired" : "Due"} ${p.dueFee ? "₹" + p.dueFee : ""}</span></div>`
+    ).join("")}${due.length > 15 ? `<p class="mu">+${due.length - 15} aur…</p>` : ""}</div>` : ""}
+  `;
+}
+
+// ---------- HOME ----------
+function home() {
+  return `
+    <div class="progress"><b>Build status:</b> App feature-complete v1 ✅ · PWA files + Master peek ✅ · Email API / Cloud admin next</div>
+    <h2>Aaj ka haal</h2>
+    ${statsBlock()}
+    <div class="grid" style="margin-top:12px">
+      <div class="t" onclick="go('admit')"><span>📝</span>Admission</div>
+      <div class="t" onclick="go('att')"><span>✅</span>Attendance</div>
+      <div class="t" onclick="go('people')"><span>👥</span>People</div>
+      <div class="t" onclick="go('rep')"><span>📊</span>Report / Backup</div>
+      <div class="t" onclick="go('store')"><span>💊</span>Store</div>
+      <div class="t" onclick="go('diet')"><span>🥗</span>Diet</div>
+      <div class="t" onclick="go('settings')"><span>⚙️</span>Settings / T&C</div>
+      <div class="t" onclick="sendDailyWA()"><span>📲</span>WA Summary</div>
+      <div class="t" onclick="printLastReceipt()"><span>🧾</span>Last Receipt</div>
+    </div>
+    <p class="mu" style="margin-top:10px">Face attendance next build me full-screen add hoga. Ab Quick Present + live board ready hai.</p>
+  `;
+}
+
+// ---------- ADMISSION ----------
+const AF = [
+  ["name", "Pura naam *"],
+  ["phone", "Mobile *", "tel"],
+  ["gender", "Gender", "sel", [["M", "Male"], ["F", "Female"], ["O", "Other"]]],
+  ["father", "Father / Husband name"],
+  ["dob", "Date of birth", "date"],
+  ["age", "Age (years)", "number"],
+  ["addr", "Current address"],
+  ["emergName", "Emergency contact name"],
+  ["emergPhone", "Emergency phone", "tel"],
+  ["height", "Height (cm)", "number"],
+  ["weight", "Weight (kg)", "number"],
+  ["medical", "Koi bimari / note", "ta"],
+  ["plan", "Plan (months)", "number"],
+  ["fee", "Fees ₹", "number"],
+  ["joined", "Joining date", "date"],
+  ["slot", "Batch / Shift", "sel", [["Morning", "Morning"], ["Evening", "Evening"], ["General", "General"]]]
+];
+
+function admitV() {
+  return `<h2>Naya Admission / Onboard</h2>
+    <div class="c">${F(AF, { plan: 1, fee: 500, slot: "Morning" })}
+    <label class="mu">Member photo (camera / gallery)</label>
+    <input type="file" id="admPhoto" accept="image/*" capture="environment" onchange="previewAdmPhoto(this)">
+    <div id="admPhotoPrev"></div>
+    <label class="mu">ID photo (optional)</label>
+    <input type="file" id="admId" accept="image/*" onchange="previewAdmId(this)">
+    <div id="admIdPrev"></div>
+    <label class="mu">VIP Card code (optional — face line skip)</label>
+    <input id="f_vipCode" placeholder="e.g. VIP-001">
+    <label class="mu"><input type="checkbox" id="f_isVip"> VIP / Card access member</label>
+    <button style="width:100%;margin-top:10px" onclick="saveAdmit()">Save + Receipt data</button></div>
+    <p class="mu">Photo clear front face rakho — Face attendance isi se match karegi.</p>`;
+}
+
+let admPhotoData = "", admIdData = "";
+window.previewAdmPhoto = function(inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  resizeFile(f, 480, 640, function(url){ admPhotoData = url; $("#admPhotoPrev").innerHTML = url ? '<img class="previmg" src="'+url+'">' : ""; });
+};
+window.previewAdmId = function(inp){
+  const f = inp.files && inp.files[0]; if(!f) return;
+  resizeFile(f, 800, 800, function(url){ admIdData = url; $("#admIdPrev").innerHTML = url ? '<img class="previmg" src="'+url+'">' : ""; });
+};
+function resizeFile(file, maxW, maxH, cb){
+  const r = new FileReader();
+  r.onload = function(e){
+    const im = new Image();
+    im.onload = function(){
+      let w = im.width, h = im.height;
+      const ratio = Math.min(maxW/w, maxH/h, 1);
+      w = Math.round(w*ratio); h = Math.round(h*ratio);
+      const c = document.createElement("canvas"); c.width=w; c.height=h;
+      c.getContext("2d").drawImage(im,0,0,w,h);
+      cb(c.toDataURL("image/jpeg", 0.8));
+    };
+    im.onerror = function(){ cb(""); };
+    im.src = e.target.result;
+  };
+  r.readAsDataURL(file);
+}
+
+function addMonths(dateStr, months) {
+  const x = new Date(dateStr || today());
+  x.setMonth(x.getMonth() + (months || 1));
+  return x.toISOString().slice(0, 10);
+}
+
+window.saveAdmit = async function () {
+  const m = gf(AF);
+  if (!m.name || !m.phone) return alert("Naam aur mobile zaroori hain.");
+  m.plan = m.plan || 1;
+  m.joined = m.joined || today();
+  m.validTill = addMonths(m.joined, m.plan);
+  m.status = Number(m.fee) > 0 ? "Paid" : "Pending";
+  m.dueFee = Number(m.fee) > 0 ? 0 : 0;
+  m.photo = admPhotoData || "";
+  m.memberPhoto = m.photo;
+  m.idPhoto = admIdData || "";
+  m.isVip = !!(document.getElementById("f_isVip") && document.getElementById("f_isVip").checked);
+  m.vipCode = ((document.getElementById("f_vipCode") && document.getElementById("f_vipCode").value) || "").trim();
+  // BMI
+  const h = Number(m.height), w = Number(m.weight);
+  if (h > 0 && w > 0) m.bmi = (w / ((h / 100) * (h / 100))).toFixed(1);
+  try {
+    const id = await put("people", m);
+    if (Number(m.fee) > 0) {
+      await put("fees", { date: m.joined, personId: id, name: m.name, amt: Number(m.fee), note: "Admission" });
+    }
+    admPhotoData = ""; admIdData = ""; toast("Saved ✔ " + m.name);
+    window.__lastAdmit = Object.assign({ id: id }, m);
+    if (Number(m.age) > 0 && Number(m.age) < 18) {
+      showUnder18WA(Object.assign({ id: id }, m));
+    }
+    if (confirm("Admission receipt print / PDF?")) printAdmitReceipt(window.__lastAdmit);
+    // WhatsApp prefill alert
+    if (G.alertWhatsApp !== false) {
+      const txt = encodeURIComponent(
+        `✅ New admission — ${G.name}\nName: ${m.name}\nPhone: ${m.phone}\nPlan: ${m.plan} mo\nFees: ₹${m.fee}\nValid: ${m.validTill}`
+      );
+      const ph = String(G.alertPhone || G.phone || "").replace(/\D/g, "").slice(-10);
+      if (ph.length === 10 && confirm("Owner WhatsApp pe summary bhejein?")) {
+        window.open("https://wa.me/91" + ph + "?text=" + txt, "_blank");
+      }
+    }
+    go("people");
+  } catch (e) {
+    alert(e.message || e);
+  }
+};
+
+// ---------- PEOPLE ----------
+function peopleV() {
+  const list = (D.people || [])
+    .filter((p) => (p.name + (p.phone || "")).toLowerCase().indexOf(q.toLowerCase()) >= 0)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  return `
+    <div class="row"><h2>People (${(D.people || []).length})</h2>
+      <button class="s" onclick="go('admit')">+ Naya</button></div>
+    <input placeholder="🔍 Naam / mobile" value="${esc(q)}" oninput="q=this.value;go('people')">
+    <div class="c">${list.map((p) => {
+      const exp = p.validTill && p.validTill < today();
+      return `<div class="list-card">
+        <div class="row"><b>${esc(p.name)}</b>
+          <span class="${exp ? "bad" : "ok"}">${exp ? "Expired" : "Active"}${p.validTill ? " · " + p.validTill : ""}</span>
+        </div>
+        <div class="mu">${esc(p.phone || "")} · ${esc(p.slot || "")} ${p.bmi ? "· BMI " + p.bmi : ""}</div>
+        <div style="margin-top:8px">
+          <button class="s" onclick="takeFee('${p.id}')">💰 Fees</button>
+          <button class="g s" onclick="markQuick('${p.id}')">✅ Present</button>
+          <button class="s" onclick="printPersonReceipt('${p.id}')">🧾 Receipt</button>
+          <button class="r s" onclick="delPerson('${p.id}')">Delete</button>
+        </div>
+      </div>`;
+    }).join("") || '<p class="mu">Koi member nahi. Admission se add karo.</p>'}</div>`;
+}
+
+window.delPerson = async function (id) {
+  if (!confirm("Delete this person?")) return;
+  await del("people", id);
+  toast("Deleted");
+  draw();
+};
+
+window.takeFee = async function (id) {
+  const p = (D.people || []).find((x) => x.id === id);
+  if (!p) return;
+  const amt = +prompt("Fees kitni mili ₹?", p.fee || 500);
+  if (!amt) return;
+  const mo = +prompt("Kitne months extend?", p.plan || 1) || 1;
+  const base = p.validTill && p.validTill > today() ? p.validTill : today();
+  const validTill = addMonths(base, mo);
+  await put("people", { validTill, status: "Paid", dueFee: 0 }, id);
+  await put("fees", { date: today(), personId: id, name: p.name, amt, note: "Renewal" });
+  toast("Fees saved · valid " + validTill);
+  draw();
+};
+
+// ---------- ATTENDANCE ----------
+function attV() {
+  const pset = presentIdsToday();
+  const list = (D.people || [])
+    .filter((p) => (p.name + (p.phone || "")).toLowerCase().indexOf(q.toLowerCase()) >= 0)
+    .sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  const todayRows = (D.attendance || []).filter((a) => a.date === today())
+    .sort((a, b) => String(b.time).localeCompare(String(a.time)));
+
+  return `
+    <h2>Attendance — ${pset.size} present</h2>
+    ${statsBlock()}
+    <input placeholder="🔍 Naam / mobile" value="${esc(q)}" oninput="q=this.value;go('att')" style="margin-top:8px">
+    <div class="c">${list.slice(0, 60).map((p) => {
+      const on = pset.has(String(p.id));
+      return `<div class="list-card row">
+        <div><b>${esc(p.name)}</b><div class="mu">${esc(p.phone || "")}</div></div>
+        ${on
+          ? `<button class="g s" onclick="unmark('${p.id}')">✔ Present (undo)</button>`
+          : `<span>
+              <button class="s" onclick="markQuick('${p.id}')">Quick</button>
+              <button class="s" onclick="openFaceFor('${p.id}')">📷 Face</button>
+              ${p.isVip || p.vipCode ? `<button class="s" onclick="markCard('${p.id}')">💳 Card</button>` : ""}
+            </span>`}
+      </div>`;
+    }).join("") || '<p class="mu">Pehle people add karo.</p>'}</div>
+    <h2>Aaj ki list</h2>
+    <div class="c">${todayRows.map((r) =>
+      `<div class="list-card row"><span>${esc(r.name)} <span class="chip">${esc(r.mode || "quick")}</span></span><b class="ok">${esc(r.time)}</b></div>`
+    ).join("") || '<p class="mu">Abhi koi nahi</p>'}</div>
+    <button class="g" style="width:100%" onclick="sendDailyWA()">📲 WhatsApp daily summary</button>
+  `;
+}
+
+window.markQuick = async function (id) {
+  const p = (D.people || []).find((x) => x.id === id);
+  if (!p) return;
+  if (presentIdsToday().has(String(id))) {
+    return alert(p.name + " aaj pehle se Present hai.");
+  }
+  const rec = {
+    date: today(),
+    personId: id,
+    mid: id,
+    name: p.name,
+    time: nowTime(),
+    mode: "quick",
+    at: new Date().toISOString()
+  };
+  await put("attendance", rec, today() + "_" + id);
+  toast("✅ " + p.name + " Present");
+  // member WA optional
+  if (G.alertWhatsApp !== false && p.phone && confirm("Member ko WhatsApp present msg?")) {
+    const txt = encodeURIComponent(`✅ ${G.name}\n${p.name}, aapki attendance mark ho gayi.\nTime: ${rec.time}\nDate: ${rec.date}`);
+    const ph = String(p.phone).replace(/\D/g, "").slice(-10);
+    if (ph.length === 10) window.open("https://wa.me/91" + ph + "?text=" + txt, "_blank");
+  }
+  draw();
+};
+
+window.unmark = async function (id) {
+  await del("attendance", today() + "_" + id);
+  toast("Present hata diya");
+  draw();
+};
+
+window.sendDailyWA = function () {
+  const pset = presentIdsToday();
+  const total = (D.people || []).length;
+  const present = pset.size;
+  const absent = Math.max(0, total - present);
+  const feesToday = (D.fees || []).filter((f) => f.date === today()).reduce((s, f) => s + (Number(f.amt) || 0), 0);
+  const txt = encodeURIComponent(
+    `📊 ${G.name} — Daily Summary\nDate: ${today()}\nPresent: ${present}\nAbsent: ${absent}\nTotal: ${total}\nFees today: ₹${feesToday}`
+  );
+  const ph = String(G.alertPhone || G.phone || "").replace(/\D/g, "").slice(-10);
+  if (ph.length !== 10) return alert("Settings me alert phone (10 digit) daalo.");
+  window.open("https://wa.me/91" + ph + "?text=" + txt, "_blank");
+};
+
+// ---------- SETTINGS ----------
+function settingsV() {
+  return `
+    <h2>Org Settings</h2>
+    <div class="c">
+      ${F([
+        ["name", "Org name"],
+        ["phone", "Phone", "tel"],
+        ["addr", "Address"],
+        ["alertPhone", "WhatsApp alert number", "tel"],
+        ["alertEmailAddr", "Alert email", "email"]
+      ], G)}
+      <label class="mu">Terms & Conditions (har org apni)</label>
+      <textarea id="f_terms">${esc(G.termsHtml || "")}</textarea>
+      <label class="mu"><input type="checkbox" id="f_wa" ${G.alertWhatsApp !== false ? "checked" : ""}> WhatsApp alerts ON</label><br>
+      <label class="mu"><input type="checkbox" id="f_em" ${G.alertEmail ? "checked" : ""}> Email alerts ON (hook ready)</label>
+      <button style="width:100%;margin-top:10px" onclick="saveSettings()">Save settings</button>
+    </div>
+    <p class="mu">Firestore rules me orgs/{orgId} isolation hona zaroori hai — warna permission error aayega.</p>
+  `;
+}
+
+window.saveSettings = async function () {
+  const patch = {
+    name: $("#f_name").value.trim() || G.name,
+    phone: $("#f_phone").value.trim(),
+    addr: $("#f_addr").value.trim(),
+    alertPhone: $("#f_alertPhone").value.trim(),
+    alertEmailAddr: $("#f_alertEmailAddr").value.trim(),
+    termsHtml: $("#f_terms").value,
+    alertWhatsApp: $("#f_wa").checked,
+    alertEmail: $("#f_em").checked
+  };
+  await orgRef().set(patch, { merge: true });
+  Object.assign(G, patch);
+  toast("Settings saved");
+  draw();
+};
+
+// ---------- REPORT + BACKUP ----------
+function rep() {
+  const t = today();
+  const fees = (D.fees || []).filter((x) => x.date === t);
+  const feeSum = fees.reduce((s, x) => s + (Number(x.amt) || 0), 0);
+  const joins = (D.people || []).filter((p) => p.joined === t).length;
+  const present = presentIdsToday().size;
+  return `
+    <h2>Report — ${t}</h2>
+    <div class="c">
+      <div class="row"><span>New admissions</span><b>${joins}</b></div>
+      <div class="row"><span>Present</span><b class="ok">${present}</b></div>
+      <div class="row"><span>Fees entries</span><b>${fees.length}</b></div>
+      <div class="row"><span>Fees collection</span><b class="big">₹${feeSum}</b></div>
+    </div>
+    <h2>Backup</h2>
+    <div class="c">
+      <p class="mu">Poora data Excel me download. Crash / phone change pe yahi se restore planning.</p>
+      <p class="mu">Last auto backup: ${localStorage.getItem("org_bk_" + (U && U.uid)) || "abhi nahi"}</p>
+      <button style="width:100%" onclick="backupExcel()">📥 Excel Backup abhi</button>
+    </div>
+    <button class="g" style="width:100%;margin-top:8px" onclick="sendDailyWA()">📲 WA summary</button>
+  `;
+}
+
+window.backupExcel = function () {
+  try {
+    const wb = XLSX.utils.book_new();
+    COLS.forEach((c) => {
+      const rows = (D[c] && D[c].length) ? D[c] : [{ empty: true }];
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), c.slice(0, 31));
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet([G || {}]), "profile");
+    const fname = ((G && G.name) || "org").replace(/\W+/g, "_") + "_backup_" + today() + ".xlsx";
+    XLSX.writeFile(wb, fname);
+    if (U) localStorage.setItem("org_bk_" + U.uid, today() + " " + nowTime());
+    toast("Backup downloaded ✔");
+  } catch (e) {
+    alert("Backup fail: " + (e.message || e));
+  }
+};
+
+
+// ---------- FACE ----------
+const MODEL_URL = "https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model";
+const MODEL_URL_ALT = "https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights";
+const MATCH_THRESHOLD = 0.68;
+let modelsLoaded = false, faceStream = null, faceMember = null, faceTarget = null, faceMatching = false, faceDraw = false, faceTimer = null, faceLeft = 10;
+
+async function loadFaceModels(){
+  if (modelsLoaded) return true;
+  try {
+    await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL);
+    await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
+    modelsLoaded = true; return true;
+  } catch(e1){
+    try {
+      await faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL_ALT);
+      await faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL_ALT);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL_ALT);
+      modelsLoaded = true; return true;
+    } catch(e2){ console.error(e2); return false; }
+  }
+}
+function faceMsg(t, cls){ const el=$("#faceMsg"); el.className=cls||""; el.innerHTML=t; }
+async function descriptorFromUrl(url){
+  if(!url || url.length<40) return null;
+  try{
+    const img = await faceapi.fetchImage(url);
+    const det = await faceapi.detectSingleFace(img, new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.35})).withFaceLandmarks(true).withFaceDescriptor();
+    return det ? det.descriptor : null;
+  }catch(e){ return null; }
+}
+window.openFaceFor = async function(id){
+  const p = (D.people||[]).find(x=>x.id===id);
+  if(!p) return;
+  if(presentIdsToday().has(String(id))) return alert(p.name+" aaj pehle se Present.");
+  faceMember = p; faceTarget = null; faceMatching = false;
+  $("#faceName").textContent = p.name || "Face";
+  $("#faceOverlay").classList.add("show");
+  faceMsg("Models…","");
+  if(!(await loadFaceModels())){ faceMsg("Models load fail — Quick use karo","bad"); return; }
+  faceMsg("Registered photo…","");
+  faceTarget = await descriptorFromUrl(p.photo || p.memberPhoto || "");
+  if(!faceTarget) faceMsg("Photo me clear face nahi — end pe confirm maangenge","bad");
+  try{
+    faceStream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:1280},height:{ideal:720}},audio:false});
+    const v = $("#faceVideo"); v.srcObject = faceStream; await v.play();
+    faceDraw = true; requestAnimationFrame(faceLoop);
+    faceLeft = 10; $("#faceTimer").textContent = faceLeft;
+    clearInterval(faceTimer);
+    faceTimer = setInterval(async ()=>{
+      faceLeft--; $("#faceTimer").textContent = Math.max(0,faceLeft);
+      if(faceLeft<=0){ clearInterval(faceTimer); await tryFaceMatch(true); }
+    },1000);
+    setTimeout(()=>tryFaceMatch(false),2500);
+    setTimeout(()=>tryFaceMatch(false),5000);
+    setTimeout(()=>tryFaceMatch(false),7500);
+    faceMsg("Chehra rakho — 10 sec auto"," ");
+  }catch(e){ faceMsg("Camera permission chahiye","bad"); }
+};
+async function tryFaceMatch(force){
+  if(faceMatching || !faceStream || !faceMember) return;
+  faceMatching = true;
+  const v = $("#faceVideo");
+  try{
+    const det = await faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.35})).withFaceLandmarks(true).withFaceDescriptor();
+    if(!det){ if(force) faceMsg("Face detect nahi","bad"); faceMatching=false; return; }
+    if(!faceTarget){
+      if(force && confirm(faceMember.name+" — registered face nahi. Present mark?")){
+        await markWithMode(faceMember, "face-live"); closeFace();
+      }
+      faceMatching=false; return;
+    }
+    const dist = faceapi.euclideanDistance(det.descriptor, faceTarget);
+    if(dist <= MATCH_THRESHOLD){
+      clearInterval(faceTimer);
+      faceMsg("Match "+dist.toFixed(2)+" — Present…","ok");
+      await markWithMode(faceMember, "face");
+      setTimeout(closeFace, 1000);
+    } else if(force) faceMsg("Match nahi ("+dist.toFixed(2)+")","bad");
+    else faceMsg("Detect… "+dist.toFixed(2)," ");
+  }catch(e){ if(force) faceMsg(String(e.message||e),"bad"); }
+  faceMatching = false;
+}
+function faceLoop(){
+  if(!faceDraw || !faceStream) return;
+  const v=$("#faceVideo"), c=$("#faceCanvas");
+  if(v.readyState>=2){
+    c.width=v.videoWidth; c.height=v.videoHeight;
+    const ctx=c.getContext("2d"); ctx.clearRect(0,0,c.width,c.height);
+    faceapi.detectSingleFace(v, new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.4})).then(det=>{
+      if(!det||!faceDraw) return;
+      ctx.strokeStyle="#3ddc84"; ctx.lineWidth=4;
+      ctx.strokeRect(det.box.x,det.box.y,det.box.width,det.box.height);
+    }).catch(()=>{});
+  }
+  setTimeout(()=>requestAnimationFrame(faceLoop),250);
+}
+window.closeFace = function(){
+  clearInterval(faceTimer); faceDraw=false; faceMatching=false; faceMember=null; faceTarget=null;
+  if(faceStream){ faceStream.getTracks().forEach(t=>t.stop()); faceStream=null; }
+  const v=$("#faceVideo"); if(v) v.srcObject=null;
+  $("#faceOverlay").classList.remove("show");
+};
+async function markWithMode(p, mode){
+  const rec = { date: today(), personId: p.id, mid: p.id, name: p.name, time: nowTime(), mode: mode||"quick", at: new Date().toISOString() };
+  await put("attendance", rec, today()+"_"+p.id);
+  toast("✅ "+p.name+" Present ("+mode+")");
+  draw();
+}
+window.markCard = async function(id){
+  const p = (D.people||[]).find(x=>x.id===id);
+  if(!p) return;
+  if(presentIdsToday().has(String(id))) return alert("Already present");
+  const code = prompt("VIP / Card code enter karo", p.vipCode || "");
+  if(code == null) return;
+  if(p.vipCode && String(code).trim() !== String(p.vipCode).trim()) return alert("Code match nahi");
+  await markWithMode(p, "card");
+};
+
+// ---------- STAFF ----------
+let showStaffForm = false;
+const SF = [
+  ["name","Staff name"],["role","Role"],["phone","Mobile","tel"],
+  ["join","Join date","date"],["shift","Shift"],["hrs","Hours/day","number"],
+  ["sal","Monthly salary ₹","number"]
+];
+function staffV(){
+  const dayRows = (D.staffAtt||[]).filter(r=>r.date===sd);
+  return `<div class="row"><h2>Staff</h2><button class="s" onclick="showStaffForm=!showStaffForm;go('staff')">+ Naya</button></div>
+  ${showStaffForm?`<div class="c">${F(SF,{hrs:8,sal:10000})}<button style="width:100%" onclick="saveStaff()">Save staff</button></div>`:""}
+  <div class="c"><label class="mu">Attendance date</label>
+  <input type="date" value="${sd}" onchange="sd=this.value;go('staff')">
+  ${(D.staff||[]).map(st=>{
+    const r = dayRows.find(x=>x.staffId===st.id) || {};
+    return `<div class="list-card">
+      <div class="row"><b>${esc(st.name)}</b><span class="mu">₹${st.sal||0}/mo · ${esc(st.role||"")}</span></div>
+      <div class="row" style="margin-top:6px">
+        <select id="st_${st.id}">
+          <option value="P" ${r.st==="P"?"selected":""}>Present</option>
+          <option value="A" ${r.st==="A"?"selected":""}>Absent</option>
+          <option value="W" ${r.st==="W"?"selected":""}>Week off</option>
+        </select>
+        <input id="pen_${st.id}" type="number" placeholder="Late hrs" value="${r.pen||""}" style="width:90px">
+        <input id="inc_${st.id}" type="number" placeholder="Incentive" value="${r.inc||""}" style="width:90px">
+      </div>
+      <button class="s" onclick="saveStaffDay('${st.id}')">Save day</button>
+      <button class="r s" onclick="delStaff('${st.id}')">Delete</button>
+    </div>`;
+  }).join("") || '<p class="mu">No staff yet</p>'}
+  </div>
+  <h2>Month salary ${sm}</h2>
+  <div class="c"><input type="month" value="${sm}" onchange="sm=this.value;go('staff')">
+  <table style="width:100%;font-size:13px;margin-top:8px"><tr><th>Name</th><th>Days</th><th>Pen</th><th>Inc</th><th>Net</th></tr>
+  ${(D.staff||[]).map(st=>{
+    const c = calcSal(st, sm);
+    return `<tr><td>${esc(st.name)}</td><td>${c.d}</td><td>-${c.pen}</td><td>+${c.inc}</td><td><b>₹${c.net}</b></td></tr>`;
+  }).join("")}
+  </table>
+  <p class="mu">Per day = salary/30. Penalty = per-day/hours × late hours.</p></div>`;
+}
+function calcSal(st, ym){
+  const day = (Number(st.sal)||0)/30, hr = day/(Number(st.hrs)||8);
+  let d=0,pen=0,inc=0,net=0;
+  (D.staffAtt||[]).filter(r=>r.staffId===st.id && String(r.date).slice(0,7)===ym).forEach(r=>{
+    if(r.st==="A") return;
+    d++; const p=Math.min(day,(Number(r.pen)||0)*hr); pen+=p; inc+=Number(r.inc)||0; net+=day-p+(Number(r.inc)||0);
+  });
+  return {d, pen:Math.round(pen), inc:Math.round(inc), net:Math.round(net)};
+}
+window.saveStaff = async function(){
+  const o = gf(SF);
+  if(!o.name || !o.sal) return alert("Name + salary required");
+  await put("staff", o);
+  showStaffForm = false; toast("Staff saved"); go("staff");
+};
+window.saveStaffDay = async function(id){
+  await put("staffAtt", {
+    staffId: id, date: sd,
+    st: $("#st_"+id).value,
+    pen: +$("#pen_"+id).value||0,
+    inc: +$("#inc_"+id).value||0
+  }, sd+"_"+id);
+  toast("Day saved"); go("staff");
+};
+window.delStaff = async function(id){
+  if(!confirm("Delete staff?")) return;
+  await del("staff", id); go("staff");
+};
+
+
+// ---------- STORE ----------
+function storeV(){
+  const low = (D.products||[]).filter(p => Number(p.qty) <= 3);
+  const salesToday = (D.sales||[]).filter(x => x.date === today());
+  const saleSum = salesToday.reduce((s,x)=>s+(Number(x.amt)||0),0);
+  const profit = salesToday.reduce((s,x)=>s+(Number(x.profit)||0),0);
+  return `<h2>Supplement / Store</h2>
+  <div class="c row"><div><div class="big">₹${saleSum}</div><div class="mu">aaj sales</div></div>
+    <div><div class="big ok">₹${profit}</div><div class="mu">aaj profit</div></div></div>
+  ${low.length?`<div class="c bad">⚠ Low stock: ${low.map(p=>esc(p.name)+" ("+p.qty+")").join(", ")}</div>`:""}
+  <div class="c">${(D.products||[]).map(p=>`
+    <div class="list-card row">
+      <div><b>${esc(p.name)}</b><div class="mu">Sell ₹${p.sell} · left <span class="${Number(p.qty)<=3?"bad":"ok"}">${p.qty}</span></div></div>
+      <div>
+        <button class="s" onclick="sellProduct('${p.id}')">Becho</button>
+        <button class="g s" onclick="addStock('${p.id}')">+Stock</button>
+      </div>
+    </div>`).join("") || '<p class="mu">Product add karo</p>'}
+  </div>
+  <div class="c"><b>Naya product</b>
+    ${F([["pname","Name"],["buy","Buy ₹","number"],["sell","Sell ₹","number"],["qty","Qty","number"]],{})}
+    <button style="width:100%" onclick="addProduct()">Add product</button>
+  </div>`;
+}
+window.addProduct = async function(){
+  const name = $("#f_pname").value.trim();
+  const buy = +$("#f_buy").value||0, sell = +$("#f_sell").value||0, qty = +$("#f_qty").value||0;
+  if(!name) return alert("Name required");
+  await put("products", { name, buy, sell, qty });
+  toast("Product added"); go("store");
+};
+window.addStock = async function(id){
+  const p = (D.products||[]).find(x=>x.id===id); if(!p) return;
+  const n = +prompt("Kitna naya stock?", 1); if(!n) return;
+  await put("products", { qty: (Number(p.qty)||0)+n }, id);
+  go("store");
+};
+window.sellProduct = async function(id){
+  const p = (D.products||[]).find(x=>x.id===id); if(!p) return;
+  const n = +prompt("Kitne beche?", 1); if(!n) return;
+  if(n > Number(p.qty)) return alert("Itna stock nahi");
+  await put("products", { qty: Number(p.qty)-n }, id);
+  await put("sales", { date: today(), productId: id, name: p.name, qty: n, amt: n*Number(p.sell), profit: n*(Number(p.sell)-Number(p.buy)) });
+  toast("Sold ✔"); go("store");
+};
+
+// ---------- RECEIPT PRINT ----------
+function printAdmitReceipt(m){
+  if(!m){ alert("Pehle admission save karo"); return; }
+  const w = window.open("", "_blank");
+  if(!w){ alert("Popup blocked"); return; }
+  const photo = m.photo || m.memberPhoto || "";
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>Receipt</title>
+  <style>
+    body{font-family:system-ui,sans-serif;padding:16px;color:#000;max-width:800px;margin:auto}
+    h1{font-size:18px;margin:0 0 4px;text-align:center}
+    .sub{text-align:center;font-size:12px;color:#444;margin-bottom:12px}
+    table{width:100%;border-collapse:collapse;font-size:13px}
+    td{padding:6px 4px;border-bottom:1px dotted #999;vertical-align:top}
+    .photo{float:right;width:100px;height:120px;object-fit:cover;border:1px solid #000}
+    .foot{margin-top:24px;display:flex;justify-content:space-between;align-items:flex-end}
+    .stamp{font-size:11px;text-align:center;border:2px solid #333;padding:8px;border-radius:50%;width:90px}
+    @media print{button{display:none}}
+  </style></head><body>
+  <button onclick="window.print()">Print / PDF</button>
+  <h1>${esc(G.name||"Organization")}</h1>
+  <div class="sub">Admission / Membership Receipt · ${esc(m.joined||today())}</div>
+  ${photo?`<img class="photo" src="${photo}">`:""}
+  <table>
+    <tr><td>Name</td><td><b>${esc(m.name)}</b></td></tr>
+    <tr><td>Phone</td><td>${esc(m.phone)}</td></tr>
+    <tr><td>Gender / Age</td><td>${esc(m.gender||"")} / ${esc(m.age||"")}</td></tr>
+    <tr><td>Father / Husband</td><td>${esc(m.father||"")}</td></tr>
+    <tr><td>Address</td><td>${esc(m.addr||"")}</td></tr>
+    <tr><td>Emergency</td><td>${esc(m.emergName||"")} ${esc(m.emergPhone||"")}</td></tr>
+    <tr><td>Height / Weight / BMI</td><td>${esc(m.height||"")} cm / ${esc(m.weight||"")} kg / ${esc(m.bmi||"—")}</td></tr>
+    <tr><td>Plan / Fees</td><td>${esc(m.plan||"")} mo · ₹${esc(m.fee||0)} · ${esc(m.status||"")}</td></tr>
+    <tr><td>Valid till</td><td>${esc(m.validTill||"")}</td></tr>
+    <tr><td>Batch</td><td>${esc(m.slot||"")}</td></tr>
+    <tr><td>VIP</td><td>${m.isVip?"Yes · "+esc(m.vipCode||""):"No"}</td></tr>
+    <tr><td>Medical</td><td>${esc(m.medical||"—")}</td></tr>
+  </table>
+  <div style="margin-top:12px;font-size:11px;white-space:pre-wrap;border:1px solid #ccc;padding:8px">${esc(G.termsHtml||"")}</div>
+  <div class="foot">
+    <div>Member sign: _____________</div>
+    <div class="stamp">AUTHORIZED<br>STAMP<br>${esc((G.name||"").slice(0,18))}</div>
+  </div>
+  <p style="font-size:10px;color:#666;margin-top:16px">Generated by Org Manager · ${today()} ${nowTime()}</p>
+  </body></html>`);
+  w.document.close();
+}
+window.printLastReceipt = function(){
+  if(window.__lastAdmit) printAdmitReceipt(window.__lastAdmit);
+  else alert("Is session me koi naya admission nahi. People se fees ke baad bhi receipt expand kar sakte ho.");
+};
+window.printPersonReceipt = function(id){
+  const p = (D.people||[]).find(x=>x.id===id);
+  if(p) printAdmitReceipt(p);
+};
+
+
+
+// ---------- UNDER 18 WA ----------
+function showUnder18WA(m){
+  const base = "5 Brother's / "+(G.name||"Org")+"\nMember: "+m.name+" (age "+m.age+")\nPlan: "+(m.plan||"")+" mo\nID: "+(m.id||"");
+  const toMember = "Namaste "+m.name+",\nAdmission form submit ho gaya.\n\n"+base+"\n\n18 se kam: sirf halki exercise. Bhari weight mana. Chot ki zimmedari gym ki nahi.";
+  const toParent = "Namaste,\nAapke ward "+m.name+" ne "+(G.name||"Org")+" me admission form diya hai.\n\n"+base;
+  const ownerTxt = "NEW MINOR ADMISSION\n"+base+"\nPhone: "+(m.phone||"")+"\nParent: "+(m.emergPhone||"");
+  const ph = (x)=>String(x||"").replace(/\D/g,"").slice(-10);
+  const own = ph(G.alertPhone||G.phone);
+  const mem = ph(m.phone);
+  const par = ph(m.emergPhone);
+  let html = "<div class='w'><h2>18 se kam — WA bhejo</h2><div class='c'>";
+  if(own.length===10) html += `<a href="https://wa.me/91${own}?text=${encodeURIComponent(ownerTxt)}" target="_blank"><button style="width:100%;margin:6px 0">1. Owner / Admin</button></a>`;
+  if(mem.length===10) html += `<a href="https://wa.me/91${mem}?text=${encodeURIComponent(toMember)}" target="_blank"><button style="width:100%;margin:6px 0">2. Member</button></a>`;
+  if(par.length===10) html += `<a href="https://wa.me/91${par}?text=${encodeURIComponent(toParent)}" target="_blank"><button style="width:100%;margin:6px 0">3. Parents</button></a>`;
+  else html += "<p class='bad'>Parents ka 10-digit emergency phone nahi — form me bharo.</p>";
+  html += `<button class="g" style="width:100%" onclick="go('people')">Band / People</button></div></div>`;
+  // temporary overlay via app content
+  const nav = A.innerHTML;
+  A.innerHTML = html + `<div class="nav"><a onclick="draw()"><div>🏠</div>Back</a></div>`;
+}
+
+// ---------- DIET ----------
+const DIET_TEMPLATES = {
+  lose: "Subah: Warm water + 2 eggs / oats\nDopahar: Roti + sabzi + salad (oil kam)\nShaam: Fruits / black coffee\nRaat: Light dal + salad\nCardio 20–30 min · Paani 3–4 L",
+  gain: "Subah: Eggs / banana shake + peanut\nDopahar: Roti/rice + dal + paneer/chicken\nPre-workout: Banana + black coffee\nPost: Protein + 2 eggs\nRaat: Paneer/chicken + rice\nWeight training + surplus calories",
+  fit: "Subah: Eggs + fruits\nDopahar: Balanced roti + sabzi + protein\nShaam: Sprouts / salad\nRaat: Light protein + veggies\n3–4 days workout + 8k steps · Paani 3 L"
+};
+function dietV(){
+  const list = (D.people||[]).slice().sort((a,b)=>String(a.name).localeCompare(b.name));
+  return `<h2>Diet Chart</h2>
+  <p class="mu">BMI / goal se template assign. Member pe save hota hai.</p>
+  <div class="c">
+    <label class="mu">Member</label>
+    <select id="dietPerson">${list.map(p=>`<option value="${p.id}">${esc(p.name)} ${p.bmi?"· BMI "+p.bmi:""}</option>`).join("")||"<option value=''>No people</option>"}</select>
+    <label class="mu">Goal</label>
+    <select id="dietGoal" onchange="fillDietTpl()">
+      <option value="fit">Maintain / Fit</option>
+      <option value="lose">Weight loss</option>
+      <option value="gain">Weight gain</option>
+    </select>
+    <label class="mu">Chart text</label>
+    <textarea id="dietText" style="min-height:140px">${DIET_TEMPLATES.fit}</textarea>
+    <button style="width:100%" onclick="saveDiet()">Assign diet</button>
+  </div>
+  <h2>Assigned</h2>
+  <div class="c">${list.filter(p=>p.dietChart).map(p=>`
+    <div class="list-card">
+      <b>${esc(p.name)}</b> <span class="chip">${esc(p.dietGoal||"")}</span>
+      <pre style="white-space:pre-wrap;font-size:12px;color:var(--mu);margin:6px 0 0">${esc(p.dietChart)}</pre>
+      <button class="s" onclick="waDiet('${p.id}')">📲 WA chart</button>
+    </div>`).join("") || '<p class="mu">Abhi koi assign nahi</p>'}
+  </div>`;
+}
+window.fillDietTpl = function(){
+  const g = $("#dietGoal").value;
+  $("#dietText").value = DIET_TEMPLATES[g] || DIET_TEMPLATES.fit;
+};
+window.saveDiet = async function(){
+  const id = $("#dietPerson").value;
+  if(!id) return alert("Member chuno");
+  const goal = $("#dietGoal").value;
+  const chart = $("#dietText").value.trim();
+  await put("people", { dietGoal: goal, dietChart: chart }, id);
+  toast("Diet saved"); go("diet");
+};
+window.waDiet = function(id){
+  const p = (D.people||[]).find(x=>x.id===id);
+  if(!p || !p.dietChart) return;
+  const ph = String(p.phone||"").replace(/\D/g,"").slice(-10);
+  if(ph.length!==10) return alert("Member phone nahi");
+  const txt = encodeURIComponent((G.name||"Org")+" — Diet Chart\n"+p.name+"\nGoal: "+(p.dietGoal||"")+"\n\n"+p.dietChart);
+  window.open("https://wa.me/91"+ph+"?text="+txt, "_blank");
+};
+
+if ("serviceWorker" in navigator) {
+  addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+
+
+// ---------- MASTER ADMIN (platform owner) ----------
+// Apna email yahan daalo — ye logins master panel dekh sakte hain
+const MASTER_EMAILS = ["admin@orgmanager.local", "saurabh@5bfc.local"];
+function isMaster(){
+  const em = (U && U.email || "").toLowerCase();
+  return MASTER_EMAILS.some(x => em === x.toLowerCase()) || em.indexOf("admin@") === 0;
+}
+
+function masterV(){
+  if(!isMaster()) return `<div class="c bad">Master access nahi. Apna admin email code me MASTER_EMAILS me add karo.</div>`;
+  return `<h2>Master Admin</h2>
+  <p class="mu">Platform owner panel — orgs list (read via known uid is limited client-side). Production me Cloud Function + custom claims use karo.</p>
+  <div class="c">
+    <p><b>Logged in:</b> ${esc(U.email)}</p>
+    <p class="mu">Client SDK se saari orgs list tabhi jab aapke paas admin SDK / Function ho. Yahan tools:</p>
+    <label class="mu">Org UID (user uid) se profile dekho</label>
+    <input id="m_uid" placeholder="Firebase Auth UID of org">
+    <button onclick="masterPeek()">Peek org profile</button>
+    <pre id="m_out" class="mu" style="white-space:pre-wrap;font-size:11px;margin-top:8px"></pre>
+  </div>
+  <div class="c">
+    <b>Billing notes (manual)</b>
+    <textarea id="m_bill" placeholder="Org name — plan — expiry — notes">${esc(localStorage.getItem("master_bill_notes")||"")}</textarea>
+    <button onclick="localStorage.setItem('master_bill_notes',$('#m_bill').value);toast('Notes saved on this device')">Save notes (local)</button>
+  </div>
+  <p class="mu">Asli multi-org admin list ke liye baad me Cloud Function + custom claim <code>platformAdmin</code> lagana best hai (security).</p>`;
+}
+window.masterPeek = async function(){
+  const uid = ($("#m_uid").value||"").trim();
+  if(!uid) return alert("UID daalo");
+  try{
+    const snap = await db.collection("orgs").doc(uid).get();
+    $("#m_out").textContent = snap.exists ? JSON.stringify(snap.data(), null, 2) : "Not found / no permission";
+  }catch(e){
+    $("#m_out").textContent = String(e.message||e);
+  }
+};
+
+function autoBackupOnce() {
+  try {
+    if (!U) return;
+    const k = "org_bk_" + U.uid;
+    if (localStorage.getItem(k) && localStorage.getItem(k).indexOf(today()) === 0) return;
+    // soft: don't force download every refresh — only mark reminder
+    // Uncomment to force daily file: backupExcel();
+  } catch (e) {}
+}
+</script>
+</body>
+</html>
