@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Universal SaaS Portal - Login & Authentication</title>
+  <!-- Firebase App & Auth SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <style>
+    :root { --bg: #0b0b0d; --card: #16161a; --border: #2c2c35; --ac: #ffcc00; --tx: #f0f0f5; --mut: #9999a8; --ok: #2ecc71; --err: #e74c3c; }
+    body { background: var(--bg); color: var(--tx); font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; box-sizing: border-box; }
+    .auth-box { max-width: 420px; width: 100%; background: var(--card); border: 2px solid var(--ac); border-radius: 18px; padding: 24px; box-sizing: border-box; box-shadow: 0 0 30px rgba(255,204,0,0.15); }
+    .header { text-align: center; margin-bottom: 20px; border-bottom: 1.5px dashed var(--border); padding-bottom: 12px; }
+    .header h2 { color: var(--ac); margin: 0; font-size: 20px; font-weight: 900; }
+    .header p { color: var(--mut); font-size: 11.5px; margin: 4px 0 0; }
+    .field { margin-bottom: 14px; }
+    label { display: block; font-size: 11px; color: #ccc; margin-bottom: 4px; font-weight: 600; }
+    input { width: 100%; background: #0b0b0d; border: 1.5px solid var(--border); color: #fff; padding: 12px; border-radius: 8px; font-size: 13px; box-sizing: border-box; outline: none; }
+    input:focus { border-color: var(--ac); }
+    .btn-main { width: 100%; background: var(--ac); color: #000; font-weight: 900; padding: 13px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; margin-top: 10px; }
+    .btn-main:hover { opacity: 0.9; }
+    .links { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; font-size: 11.5px; }
+    .links a { color: var(--ac); text-decoration: none; cursor: pointer; }
+    .links a:hover { text-decoration: underline; }
+    .error-msg { background: rgba(231, 76, 60, 0.15); border: 1px solid var(--err); color: var(--err); padding: 8px; border-radius: 6px; font-size: 11.5px; margin-bottom: 12px; display: none; text-align: center; }
+    .success-msg { background: rgba(46, 204, 113, 0.15); border: 1px solid var(--ok); color: var(--ok); padding: 8px; border-radius: 6px; font-size: 11.5px; margin-bottom: 12px; display: none; text-align: center; }
+    .mode-switch { text-align: center; margin-top: 16px; font-size: 12px; color: var(--mut); }
+    .mode-switch span { color: var(--ac); font-weight: bold; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+<div class="auth-box">
+  <div class="header">
+    <div style="background:var(--ac); color:#000; font-size:9px; font-weight:900; padding:2px 8px; border-radius:10px; display:inline-block; margin-bottom:6px;">UNIVERSAL SAAS PORTAL</div>
+    <h2 id="formTitle">Welcome Back</h2>
+    <p id="formSub">Sign in with your Email or Phone credential</p>
+  </div>
+
+  <div id="errorAlert" class="error-msg"></div>
+  <div id="successAlert" class="success-msg"></div>
+
+  <form id="authForm" onsubmit="handleAuthSubmit(event)">
+    <div class="field" id="nameField" style="display:none;">
+      <label>Full Name / Organization Name *</label>
+      <input type="text" id="userNameInput" placeholder="Enter full name">
+    </div>
+
+    <div class="field">
+      <label id="identityLabel">Email Address or Phone Number *</label>
+      <input type="text" id="userEmailOrPhone" required placeholder="user@example.com or 9876543210">
+    </div>
+
+    <div class="field" id="passwordFieldContainer">
+      <label>Password *</label>
+      <input type="password" id="userPassword" required placeholder="Enter secure password">
+    </div>
+
+    <button type="submit" class="btn-main" id="submitBtn">Sign In ➔</button>
+  </form>
+
+  <div class="links">
+    <a onclick="triggerForgotPassword()">Forgot Password?</a>
+    <span id="toggleModeText">Need an account? <a onclick="toggleAuthMode()">Sign Up</a></span>
+  </div>
+</div>
+
+<script>
+  // Firebase Configuration Initialization
+  const firebaseConfig = {
+    apiKey: "AIzaSyA9z1gXZDB3W0lJxyHV9x2vWeb0Ees7z-g",
+    authDomain: "brother-s-fitness-club.firebaseapp.com",
+    projectId: "brother-s-fitness-club",
+    storageBucket: "brother-s-fitness-club.firebasestorage.app",
+    messagingSenderId: "781489019006",
+    appId: "1:781489019006:web:4a230698f2195e7208202f"
+  };
+  if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+  const auth = firebase.auth();
+
+  let isSignUpMode = false;
+
+  function toggleAuthMode() {
+    isSignUpMode = !isSignUpMode;
+    document.getElementById("nameField").style.display = isSignUpMode ? "block" : "none";
+    document.getElementById("formTitle").innerText = isSignUpMode ? "Create Account" : "Welcome Back";
+    document.getElementById("formSub").innerText = isSignUpMode ? "Register your organization portal" : "Sign in with your credential";
+    document.getElementById("submitBtn").innerText = isSignUpMode ? "Register & Continue ➔" : "Sign In ➔";
+    document.getElementById("toggleModeText").innerHTML = isSignUpMode ? 
+      'Already registered? <a onclick="toggleAuthMode()">Sign In</a>' : 
+      'Need an account? <a onclick="toggleAuthMode()">Sign Up</a>';
+    hideAlerts();
+  }
+
+  function hideAlerts() {
+    document.getElementById("errorAlert").style.display = "none";
+    document.getElementById("successAlert").style.display = "none";
+  }
+
+  function showError(msg) {
+    const el = document.getElementById("errorAlert");
+    el.innerText = msg;
+    el.style.display = "block";
+    document.getElementById("successAlert").style.display = "none";
+  }
+
+  function showSuccess(msg) {
+    const el = document.getElementById("successAlert");
+    el.innerText = msg;
+    el.style.display = "block";
+    document.getElementById("errorAlert").style.display = "none";
+  }
+
+  // Helper to convert phone input into a dummy email for Firebase Auth compatibility
+  function formatIdentifier(input) {
+    input = input.trim();
+    if (/^\d{10}$/.test(input)) {
+      return input + "@orgdesk.phone"; // Maps 10-digit phone to secure auth email
+    }
+    return input;
+  }
+
+  async function handleAuthSubmit(e) {
+    e.preventDefault();
+    hideAlerts();
+
+    const rawInput = document.getElementById("userEmailOrPhone").value;
+    const password = document.getElementById("userPassword").value;
+    const credential = formatIdentifier(rawInput);
+    const btn = document.getElementById("submitBtn");
+
+    btn.disabled = true;
+    btn.innerText = "Please wait...";
+
+    try {
+      if (isSignUpMode) {
+        const name = document.getElementById("userNameInput").value.trim();
+        if (!name) { throw new Error("Please enter your organization name."); }
+        
+        const userCred = await auth.createUserWithEmailAndPassword(credential, password);
+        await userCred.user.updateProfile({ displayName: name });
+        
+        showSuccess("Account created successfully! Redirecting...");
+        setTimeout(() => { window.location.href = "category-select.html"; }, 1200);
+      } else {
+        await auth.signInWithEmailAndPassword(credential, password);
+        showSuccess("Login successful! Redirecting...");
+        setTimeout(() => { window.location.href = "category-select.html"; }, 1000);
+      }
+    } catch (err) {
+      showError(err.message);
+      btn.disabled = false;
+      btn.innerText = isSignUpMode ? "Register & Continue ➔" : "Sign In ➔";
+    }
+  }
+
+  async function triggerForgotPassword() {
+    const rawInput = document.getElementById("userEmailOrPhone").value.trim();
+    if (!rawInput) {
+      showError("Please enter your Email Address or Phone credential above first to reset password.");
+      return;
+    }
+    const credential = formatIdentifier(rawInput);
+    if (credential.includes("@orgdesk.phone")) {
+      showError("Password reset via phone number requires email recovery. Please use an email address.");
+      return;
+    }
+
+    try {
+      await auth.sendPasswordResetEmail(credential);
+      showSuccess("Password reset link sent to your email inbox!");
+    } catch (err) {
+      showError(err.message);
+    }
+  }
+</script>
+
+</body>
+</html>
